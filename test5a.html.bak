@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src='sql.js'></script> <!-- Ensure you have the updated version from https://github.com/kripken/sql.js -->
+    <script src='../js/purejswebsql.js'></script>
+    <script>
+        openDatabase = purejsOpenDatabase;
+
+        function $(selector) {
+            return document.querySelector(selector);
+        }
+
+        var db = openDatabase('treasureHuntDB', '1.0', 'Treasure Hunt Database', 2 * 1024 * 1024);
+        var points = 100; // Starting points
+        var correctOutput = [
+            { treasure: "Golden Chalice", location: "Cave of Wonders" },
+            { treasure: "Emerald Necklace", location: "Hidden Valley" }
+        ];
+
+        function initializeDatabase() {
+            db.transaction(function (tx) {
+                const queries = [
+                    'DROP TABLE IF EXISTS treasures;',
+                    'DROP TABLE IF EXISTS locations;',
+                    'DROP TABLE IF EXISTS clues;',
+                    'CREATE TABLE locations (id INTEGER PRIMARY KEY AUTOINCREMENT, place TEXT);',
+                    'CREATE TABLE treasures (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, location_id INTEGER, FOREIGN KEY(location_id) REFERENCES locations(id));',
+                    'CREATE TABLE clues (id INTEGER PRIMARY KEY AUTOINCREMENT, clue TEXT, treasure_id INTEGER, FOREIGN KEY(treasure_id) REFERENCES treasures(id));',
+                    'INSERT INTO locations(place) VALUES ("Cave of Wonders");',
+                    'INSERT INTO locations(place) VALUES ("Hidden Valley");',
+                    'INSERT INTO treasures(name, location_id) VALUES ("Golden Chalice", 1);',
+                    'INSERT INTO treasures(name, location_id) VALUES ("Emerald Necklace", 2);',
+                    'INSERT INTO clues(clue, treasure_id) VALUES ("Look under the shimmering waterfall.", 1);',
+                    'INSERT INTO clues(clue, treasure_id) VALUES ("Follow the path of flowers.", 2);'
+                ];
+
+                queries.forEach(query => {
+                    tx.executeSql(query, [], function(){}, function(tx, e) { console.log(e); });
+                });
+            });
+        }
+
+        function executeQuery() {
+            var userQuery = $('#sqlcode').value.trim();
+
+            if (userQuery.length === 0) {
+                $('#feedback').innerHTML = 'Please enter a SQL query!';
+                return;
+            }
+
+            // Deduct points for each query
+            points -= 5;
+            updatePoints();
+
+            db.transaction(function (tx) {
+                tx.executeSql(userQuery, [], function (tx, results) {
+                    var len = results.rows.length;
+                    var resultText = '<table border="1"><tr>';
+                    
+                    // Dynamically create table headers based on the first result
+                    if (len > 0) {
+                        for (var key in results.rows.item(0)) {
+                            resultText += `<th>${key}</th>`;
+                        }
+                        resultText += '</tr>';
+
+                        // Populate table with results
+                        for (var i = 0; i < len; i++) {
+                            resultText += '<tr>';
+                            for (var key in results.rows.item(i)) {
+                                resultText += `<td>${results.rows.item(i)[key]}</td>`;
+                            }
+                            resultText += '</tr>';
+                        }
+                        resultText += '</table>';
+                    } else {
+                        resultText = 'No results found.';
+                    }
+
+                    $('#result').innerHTML = resultText;
+
+                    // Check if the output matches the correct output
+                    if (isOutputCorrect(results)) {
+                        $('#feedback').innerHTML = `Correct! You found the treasure with ${points} points left.`;
+                    } else {
+                        $('#feedback').innerHTML = 'Incorrect output! Keep exploring or try another answer.';
+                    }
+                }, function (tx, error) {
+                    $('#feedback').innerHTML = 'Error in your SQL query: ' + error.message;
+                });
+            });
+        }
+
+        function isOutputCorrect(results) {
+            let output = [];
+            for (let i = 0; i < results.rows.length; i++) {
+                output.push({
+                    treasure: results.rows.item(i).name,
+                    location: results.rows.item(i).place
+                });
+            }
+
+            if (output.length !== correctOutput.length) {
+                return false; // Number of rows must match
+            }
+
+            return output.every(item => 
+                correctOutput.some(correctItem => 
+                    correctItem.treasure === item.treasure && correctItem.location === item.location
+                )
+            );
+        }
+
+        function updatePoints() {
+            $('#points').innerHTML = `Points: ${points}`;
+        }
+
+        window.onload = function() {
+            initializeDatabase();
+            updatePoints();
+        };
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        h2 {
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            resize: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        img {
+            max-width: 30%;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+    <h2>Treasure Hunt SQL Exploration Game</h2>
+    <img src="image.jpg" alt="Treasure Hunt" /> <!-- Add your image here -->
+    <p>Explore the database using SQL queries to find the treasures and their locations. You start with 100 points, but each query deducts 5 points. Once you think you know the answer, run your query!</p>
+    <p><strong>Question:</strong> Find the treasures and their locations.</p>
+    <textarea id='sqlcode' cols='100' rows='5'></textarea><br/>
+    <input type='button' value='Run Query' onclick='executeQuery()' /><br/>
+    <div id='points'></div>
+    <div id='result'></div>
+    <div id='feedback'></div>
+</body>
+</html>
+
