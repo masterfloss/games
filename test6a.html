@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src='sql.js'></script> <!-- Ensure you have the updated version from https://github.com/kripken/sql.js -->
-    <script src='../js/purejswebsql.js'></script>
+    <script src='sql.js'></script>
+    <script src='js/purejswebsql.js'></script>
     <script>
         openDatabase = purejsOpenDatabase;
 
@@ -13,8 +13,8 @@
         var db = openDatabase('treasureHuntDB', '1.0', 'Treasure Hunt Database', 2 * 1024 * 1024);
         var points = 100; // Starting points
         var correctOutput = [
-            { treasure: "Golden Chalice", location: "Cave of Wonders", thief: "John Doe" },
-            { treasure: "Emerald Necklace", location: "Hidden Valley", thief: "Jane Smith" }
+            { treasure: "Golden Chalice", location: "Cave of Wonders", thief: "Blackbeard" },
+            { treasure: "Emerald Necklace", location: "Hidden Valley", thief: "Scarlet" }
         ];
 
         function initializeDatabase() {
@@ -22,16 +22,20 @@
                 const queries = [
                     'DROP TABLE IF EXISTS treasures;',
                     'DROP TABLE IF EXISTS locations;',
+                    'DROP TABLE IF EXISTS clues;',
                     'DROP TABLE IF EXISTS thieves;',
                     'CREATE TABLE locations (id INTEGER PRIMARY KEY AUTOINCREMENT, place TEXT);',
-                    'CREATE TABLE treasures (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, location_id INTEGER, thief_id INTEGER, FOREIGN KEY(location_id) REFERENCES locations(id), FOREIGN KEY(thief_id) REFERENCES thieves(id));',
-                    'CREATE TABLE thieves (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT);',
+                    'CREATE TABLE treasures (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, location_id INTEGER, FOREIGN KEY(location_id) REFERENCES locations(id));',
+                    'CREATE TABLE clues (id INTEGER PRIMARY KEY AUTOINCREMENT, clue TEXT, treasure_id INTEGER, FOREIGN KEY(treasure_id) REFERENCES treasures(id));',
+                    'CREATE TABLE thieves (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, treasure_id INTEGER, FOREIGN KEY(treasure_id) REFERENCES treasures(id));',
                     'INSERT INTO locations(place) VALUES ("Cave of Wonders");',
                     'INSERT INTO locations(place) VALUES ("Hidden Valley");',
-                    'INSERT INTO thieves(name) VALUES ("John Doe");',
-                    'INSERT INTO thieves(name) VALUES ("Jane Smith");',
-                    'INSERT INTO treasures(name, location_id, thief_id) VALUES ("Golden Chalice", 1, 1);',
-                    'INSERT INTO treasures(name, location_id, thief_id) VALUES ("Emerald Necklace", 2, 2);'
+                    'INSERT INTO treasures(name, location_id) VALUES ("Golden Chalice", 1);',
+                    'INSERT INTO treasures(name, location_id) VALUES ("Emerald Necklace", 2);',
+                    'INSERT INTO clues(clue, treasure_id) VALUES ("Look under the shimmering waterfall.", 1);',
+                    'INSERT INTO clues(clue, treasure_id) VALUES ("Follow the path of flowers.", 2);',
+                    'INSERT INTO thieves(name, treasure_id) VALUES ("Blackbeard", 1);',
+                    'INSERT INTO thieves(name, treasure_id) VALUES ("Scarlet", 2);'
                 ];
 
                 queries.forEach(query => {
@@ -56,7 +60,7 @@
                 tx.executeSql(userQuery, [], function (tx, results) {
                     var len = results.rows.length;
                     var resultText = '<table border="1"><tr>';
-                    
+
                     // Dynamically create table headers based on the first result
                     if (len > 0) {
                         for (var key in results.rows.item(0)) {
@@ -95,13 +99,12 @@
             let output = [];
             for (let i = 0; i < results.rows.length; i++) {
                 output.push({
-                    treasure: results.rows.item(i).treasure,
-                    location: results.rows.item(i).location,
+                    treasure: results.rows.item(i).name,
+                    location: results.rows.item(i).place,
                     thief: results.rows.item(i).thief
                 });
             }
 
-            // Check if the output matches the correct output
             if (output.length !== correctOutput.length) {
                 return false; // Number of rows must match
             }
@@ -109,7 +112,7 @@
             return output.every(item => 
                 correctOutput.some(correctItem => 
                     correctItem.treasure === item.treasure && 
-                    correctItem.location === item.location &&
+                    correctItem.location === item.location && 
                     correctItem.thief === item.thief
                 )
             );
@@ -124,11 +127,45 @@
             updatePoints();
         };
     </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        h2 {
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            resize: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        img {
+            max-width: 50%;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+        }
+    </style>
 </head>
 <body>
     <h2>Treasure Hunt SQL Exploration Game</h2>
-    <p>Explore the database using SQL queries to find the treasures, their locations, and the thieves. You start with 100 points, but each query deducts 5 points. Once you think you know the answer, run your query!</p>
-    <p><strong>Question:</strong> Find the treasures, their locations, and the thieves.</p>
+    <img src="image.jpg" alt="Treasure Hunt" />
+    <p>Explore the database using SQL queries to find the treasures, their locations, and the thief who stole them. You start with 100 points, but each query deducts 5 points. You can also ask for hints at the cost of additional points. Once you think you know the answer, run your query!</p>
+    <p><strong>Question:</strong> Find the treasures, their locations, and the associated thief.</p>
     <textarea id='sqlcode' cols='100' rows='5'></textarea><br/>
     <input type='button' value='Run Query' onclick='executeQuery()' /><br/>
     <div id='points'></div>
@@ -136,3 +173,4 @@
     <div id='feedback'></div>
 </body>
 </html>
+
