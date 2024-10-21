@@ -22,20 +22,13 @@
                 const queries = [
                     'DROP TABLE IF EXISTS treasures;',
                     'DROP TABLE IF EXISTS locations;',
-                    'DROP TABLE IF EXISTS clues;',
                     'DROP TABLE IF EXISTS thieves;',
                     'CREATE TABLE locations (id INTEGER PRIMARY KEY AUTOINCREMENT, place TEXT);',
-                    'CREATE TABLE treasures (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, location_id INTEGER, FOREIGN KEY(location_id) REFERENCES locations(id));',
-                    'CREATE TABLE clues (id INTEGER PRIMARY KEY AUTOINCREMENT, clue TEXT, treasure_id INTEGER, FOREIGN KEY(treasure_id) REFERENCES treasures(id));',
-                    'CREATE TABLE thieves (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, treasure_id INTEGER, FOREIGN KEY(treasure_id) REFERENCES treasures(id));',
-                    'INSERT INTO locations(place) VALUES ("Cave of Wonders");',
-                    'INSERT INTO locations(place) VALUES ("Hidden Valley");',
-                    'INSERT INTO treasures(name, location_id) VALUES ("Golden Chalice", 1);',
-                    'INSERT INTO treasures(name, location_id) VALUES ("Emerald Necklace", 2);',
-                    'INSERT INTO clues(clue, treasure_id) VALUES ("Look under the shimmering waterfall.", 1);',
-                    'INSERT INTO clues(clue, treasure_id) VALUES ("Follow the path of flowers.", 2);',
-                    'INSERT INTO thieves(name, treasure_id) VALUES ("Blackbeard", 1);',
-                    'INSERT INTO thieves(name, treasure_id) VALUES ("Scarlet", 2);'
+                    'CREATE TABLE treasures (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, location_id INTEGER);',
+                    'CREATE TABLE thieves (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, treasure_id INTEGER);',
+                    'INSERT INTO locations(place) VALUES ("Cave of Wonders"), ("Hidden Valley");',
+                    'INSERT INTO treasures(name, location_id) VALUES ("Golden Chalice", 1), ("Emerald Necklace", 2);',
+                    'INSERT INTO thieves(name, treasure_id) VALUES ("Blackbeard", 1), ("Scarlet", 2);'
                 ];
 
                 queries.forEach(query => {
@@ -59,33 +52,23 @@
             db.transaction(function (tx) {
                 tx.executeSql(userQuery, [], function (tx, results) {
                     var len = results.rows.length;
-                    var resultText = '<table border="1"><tr>';
+                    var resultText = '<table border="1"><tr><th>Treasure</th><th>Location</th><th>Thief</th></tr>';
 
-                    // Dynamically create table headers based on the first result
-                    if (len > 0) {
-                        for (var key in results.rows.item(0)) {
-                            resultText += `<th>${key}</th>`;
-                        }
+                    // Populate table with results
+                    for (var i = 0; i < len; i++) {
+                        resultText += '<tr>';
+                        resultText += `<td>${results.rows.item(i).name}</td>`;
+                        resultText += `<td>${results.rows.item(i).place}</td>`;
+                        resultText += `<td>${results.rows.item(i).thief}</td>`;
                         resultText += '</tr>';
-
-                        // Populate table with results
-                        for (var i = 0; i < len; i++) {
-                            resultText += '<tr>';
-                            for (var key in results.rows.item(i)) {
-                                resultText += `<td>${results.rows.item(i)[key]}</td>`;
-                            }
-                            resultText += '</tr>';
-                        }
-                        resultText += '</table>';
-                    } else {
-                        resultText = 'No results found.';
                     }
+                    resultText += '</table>';
 
                     $('#result').innerHTML = resultText;
 
                     // Check if the output matches the correct output
                     if (isOutputCorrect(results)) {
-                        $('#feedback').innerHTML = `Correct! You found the treasure with ${points} points left.`;
+                        $('#feedback').innerHTML = `Correct! You found the treasures with ${points} points left.`;
                     } else {
                         $('#feedback').innerHTML = 'Incorrect output! Keep exploring or try another answer.';
                     }
