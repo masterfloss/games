@@ -57,9 +57,9 @@
                     // Populate table with results
                     for (var i = 0; i < len; i++) {
                         resultText += '<tr>';
-                        resultText += `<td>${results.rows.item(i).name}</td>`;
+                        resultText += `<td>${results.rows.item(i).treasure}</td>`; // Updated from name to treasure
                         resultText += `<td>${results.rows.item(i).place}</td>`;
-                        resultText += `<td>${results.rows.item(i).thief}</td>`;
+                        resultText += `<td>${results.rows.item(i).thief}</td>`; // Ensure 'thief' is correctly accessed
                         resultText += '</tr>';
                     }
                     resultText += '</table>';
@@ -82,7 +82,7 @@
             let output = [];
             for (let i = 0; i < results.rows.length; i++) {
                 output.push({
-                    treasure: results.rows.item(i).name,
+                    treasure: results.rows.item(i).treasure, // Ensure the field names match the SQL query
                     location: results.rows.item(i).place,
                     thief: results.rows.item(i).thief
                 });
@@ -108,6 +108,8 @@
         window.onload = function() {
             initializeDatabase();
             updatePoints();
+            // Default SQL query example
+            $('#sqlcode').value = 'SELECT treasures.name AS treasure, locations.place, thieves.name AS thief FROM treasures JOIN locations ON treasures.location_id = locations.id JOIN thieves ON treasures.id = thieves.treasure_id;';
         };
     </script>
     <style>
@@ -145,10 +147,10 @@
     </style>
 </head>
 <body>
-    <h2>:Treasure Hunt SQL Exploration Game</h2>
+    <h2>Treasure Hunt SQL Exploration Game</h2>
     <img src="image.jpg" alt="Treasure Hunt" />
     <p>Explore the database using SQL queries to find the treasures, their locations, and the thief who stole them. You start with 100 points, but each query deducts 5 points. You can also ask for hints at the cost of additional points. Once you think you know the answer, run your query!</p>
-    <p><strong>Question::</strong> Find the treasures, their locations, and the associated thief.</p>
+    <p><strong>Question:</strong> Find the treasures, their locations, and the associated thief.</p>
     <textarea id='sqlcode' cols='100' rows='5'></textarea><br/>
     <input type='button' value='Run Query' onclick='executeQuery()' /><br/>
     <div id='points'></div>
@@ -156,3 +158,4 @@
     <div id='feedback'></div>
 </body>
 </html>
+
